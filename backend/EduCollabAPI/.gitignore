@@ -1,0 +1,11 @@
+# Ignore build artifacts for .NET
+bin/
+obj/
+
+# User-specific files
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
