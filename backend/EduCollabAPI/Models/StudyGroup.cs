@@ -20,8 +20,5 @@ namespace EduCollabAPI.Models
         [ForeignKey("CreatorId")]
         public int CreatorId { get; set; }
 
-        public List<Material> GroupMaterials { get; set; } = new List<Material>();
-        public List<GroupMember> Members { get; set; } = new List<GroupMember>();
-        //public List<Discussion> Discussions { get; set; } = new List<Discussion>();
     }
 }
