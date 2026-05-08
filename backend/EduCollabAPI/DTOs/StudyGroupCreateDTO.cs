@@ -15,6 +15,10 @@ namespace EduCollabAPI.DTOs
         public string Description { get; set; }
 
         [Required]
+        [StringLength(50)]
+        public string Name { get; set; }
+
+        [Required]
         [Range(2, 100)]
         public int MaxMembers { get; set; }
 
@@ -23,5 +27,8 @@ namespace EduCollabAPI.DTOs
 
         [Required]
         public string MeetingSchedule { get; set; }
+
+        [Required]
+        public string Location { get; set; }
     }
 }
