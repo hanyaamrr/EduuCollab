@@ -16,5 +16,23 @@ namespace EduCollabAPI.Data
         public DbSet<Meeting> Meetings { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<GroupMember> GroupMembers { get; set; }
+        public DbSet<Discussion> GroupMessages { get; set; }  
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<Discussion>()
+                .HasOne(m => m.StudyGroup)
+                .WithMany()
+                .HasForeignKey(m => m.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Discussion>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }
