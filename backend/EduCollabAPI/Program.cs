@@ -22,6 +22,7 @@ builder.Services.AddControllers();
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+builder.Services.AddScoped<DiscussionService>();
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
