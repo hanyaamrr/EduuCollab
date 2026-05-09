@@ -13,5 +13,8 @@ namespace EduCollabAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<StudyGroup> StudyGroups { get; set; }
         public DbSet<Material> Materials { get; set; }
+        public DbSet<Meeting> Meetings { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<GroupMember> GroupMembers { get; set; }
     }
 }
