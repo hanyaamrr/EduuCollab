@@ -81,6 +81,9 @@ using (var scope = app.Services.CreateScope())
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
+
 app.MapRazorPages();
 
 app.Run();
