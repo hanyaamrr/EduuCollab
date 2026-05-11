@@ -18,20 +18,18 @@ namespace EduCollabAPI.Services
             _context = context;
         }
 
-        // ── Helpers ────────────────────────────────────────────────────────────
-
-        private async Task<bool> IsMemberAsync(int studyGroupId, string userId)
+        private async Task<bool> IsMemberAsync(int studyGroupId, int userId)
         {
             var group = await _context.StudyGroups
-                .FirstOrDefaultAsync(g => g.StudyGroupId == studyGroupId);
+                .FirstOrDefaultAsync(g => g.Id == studyGroupId);
 
             if (group == null) return false;
             if (group.CreatorId == userId) return true;
 
             return await _context.GroupMembers
-                .AnyAsync(m => m.StudyGroupId == studyGroupId
-                            && m.StudentId == userId
-                            && m.Status == MembershipStatus.Accepted);
+                .AnyAsync(m => m.GroupId == studyGroupId
+                            && m.UserId == userId
+                            && m.Status == "Accepted");
         }
 
         private static MessageResponseDto MapToDto(Discussion m) => new MessageResponseDto
@@ -41,14 +39,11 @@ namespace EduCollabAPI.Services
             SentAt = m.SentAt,
             StudyGroupId = m.StudyGroupId,
             SenderId = m.SenderId,
-            SenderName = m.Sender?.UserName
+            SenderName = m.Sender?.Username
         };
 
-        // ── Public Methods ─────────────────────────────────────────────────────
-
-        /// <summary>Get all messages for a group chat (oldest first), paginated.</summary>
         public async Task<IEnumerable<MessageResponseDto>> GetMessagesAsync(
-            int studyGroupId, string requesterId, int page = 1, int pageSize = 50)
+            int studyGroupId, int requesterId, int page = 1, int pageSize = 50)
         {
             if (!await IsMemberAsync(studyGroupId, requesterId))
                 throw new UnauthorizedAccessException("You must be a group member to view messages.");
@@ -64,8 +59,7 @@ namespace EduCollabAPI.Services
             return messages.Select(MapToDto);
         }
 
-        /// <summary>Send a message to the group chat.</summary>
-        public async Task<MessageResponseDto> SendMessageAsync(SendMessageDto dto, string senderId)
+        public async Task<MessageResponseDto> SendMessageAsync(SendMessageDto dto, int senderId)
         {
             if (!await IsMemberAsync(dto.StudyGroupId, senderId))
                 throw new UnauthorizedAccessException("You must be a group member to send messages.");
@@ -81,14 +75,12 @@ namespace EduCollabAPI.Services
             _context.GroupMessages.Add(message);
             await _context.SaveChangesAsync();
 
-            // Reload with sender info
             await _context.Entry(message).Reference(m => m.Sender).LoadAsync();
 
             return MapToDto(message);
         }
 
-        /// <summary>Delete a message (sender only).</summary>
-        public async Task<bool> DeleteMessageAsync(int messageId, string requesterId)
+        public async Task<bool> DeleteMessageAsync(int messageId, int requesterId)
         {
             var message = await _context.GroupMessages
                 .FirstOrDefaultAsync(m => m.MessageId == messageId && !m.IsDeleted);

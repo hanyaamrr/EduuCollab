@@ -21,7 +21,7 @@ namespace EduCollabAPI.Models
         public int StudyGroupId { get; set; }
 
         [Required]
-        public string SenderId { get; set; }
+        public int SenderId { get; set; }
 
         
         [ForeignKey("StudyGroupId")]
