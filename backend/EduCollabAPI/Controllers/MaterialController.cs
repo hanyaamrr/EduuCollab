@@ -1,6 +1,6 @@
-﻿using EduCollabAPI.Data;
-using EduCollabAPI.DTOs;
+﻿using EduCollabAPI.DTOs;
 using EduCollabAPI.Models;
+using EduCollabAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EduCollabAPI.Controllers
@@ -9,121 +9,96 @@ namespace EduCollabAPI.Controllers
     [ApiController]
     public class MaterialController : ControllerBase
     {
-        private readonly DataRepository<Material> _materialRepo;
-        private readonly DataRepository<StudyGroup> _groupRepo;
-        private readonly DataRepository<User> _userRepo;
+        private readonly MaterialService _materialService;
+        private readonly GroupMemberService _membershipService;
 
-        public MaterialController(DataRepository<Material> materialRepo, DataRepository<StudyGroup> groupRepo, DataRepository<User> userRepo)
+        public MaterialController(MaterialService materialService, GroupMemberService membershipService)
         {
-            _materialRepo = materialRepo;
-            _groupRepo = groupRepo;
-            _userRepo = userRepo;
+            _materialService = materialService;
+            _membershipService = membershipService;
         }
 
-
         [HttpPost("upload")]
-        public async Task<ActionResult> UploadMaterial([FromForm] MaterialUploadDto dto)
+        public async Task<IActionResult> Upload([FromForm] MaterialUploadDto dto)
         {
-            if (dto.File == null || dto.File.Length == 0)
-                return BadRequest(new { message = "Please provide a valid file." });
+            bool isMember = await _membershipService.IsUserInGroup(dto.UserId, dto.StudyGroupId);
 
-            var targetGroup = await _groupRepo.GetByIdAsync(dto.StudyGroupId);
-            if (targetGroup == null)
+            if (!isMember)
             {
-                return NotFound(new { message = "The specified destination study group does not exist." });
+                return Forbid("You aren't an accepted member of this group.");
             }
 
-            //user validation after the authentication is done
+            var result = await _materialService.UploadMaterial(dto);
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
 
-            var material = new Material
+            return Ok(result.Material);
+        }
+
+        [HttpGet("group/{groupId}/search-tag")]
+        public async Task<IActionResult> GetByTag(int groupId, [FromQuery] string tag, [FromQuery] int userId)
+        {
+            bool isMember = await _membershipService.IsUserInGroup(userId, groupId);
+
+            if (!isMember)
             {
-                FileName = dto.File.FileName,
-                FileType = Path.GetExtension(dto.File.FileName),
-                Tag = dto.Tag,
-                UploadedAt = DateTime.Now,
-                StudyGroupId = dto.StudyGroupId,
-                //UploadedByUserId = 
-            };
-
-            await _materialRepo.AddAsync(material);
-            int newId = material.Id;
-
-            var uniqueFileName = $"{newId}_{dto.File.FileName}";
-            var folder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-
-            if (!Directory.Exists(folder))
-                Directory.CreateDirectory(folder);
-
-            var fullPath = Path.Combine(folder, uniqueFileName);
-
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                await dto.File.CopyToAsync(stream);
+                return Forbid("You aren't an accepted member of this group.");
             }
 
-            material.FilePath = fullPath;
-            await _materialRepo.UpdateAsync(material);
+            var result = await _materialService.GetMaterialsByTagAsync(groupId, tag);
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
 
-            return Ok(new { message = "Upload successful!", id = newId , fileName=uniqueFileName });
+            return Ok(result.MaterialList);
+        }
+
+        [HttpGet("group/{groupId}/search-name")]
+        public async Task<IActionResult> GetByName(int groupId, [FromQuery] string fileName, [FromQuery] int userId)
+        {
+            bool isMember = await _membershipService.IsUserInGroup(userId, groupId);
+
+            if (!isMember)
+            {
+                return Forbid("You aren't an accepted member of this group.");
+            }
+
+            var result = await _materialService.GetMaterialsByNameAsync(groupId, fileName);
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
+
+            return Ok(result.MaterialList);
         }
 
         [HttpGet("download/{id}")]
-        public async Task<ActionResult> DownloadMaterial(int id)
+        public async Task<IActionResult> Download(int id, [FromQuery] int userId)
         {
-            var material = await _materialRepo.GetByIdAsync(id);
-            if (material == null)
-            {
-                return NotFound(new { message = "file does not exist." });
-            }
+            var result = await _materialService.DownloadMaterialAsync(id);
 
-            if (!(System.IO.File.Exists(material.FilePath)))
-            {
-                return NotFound(new { message = "The physical file could not be found." });
-            }
+            if (result.ErrorMessage != null)
+                return NotFound(result.ErrorMessage);
 
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(material.FilePath);
-
-            return File(fileBytes, "application/octet-stream", material.FileName);
+            return File(result.Bytes, result.FileType, result.FileName);
         }
 
-        //[HttpGet("search/{groupId}")]
-        //public async Task<ActionResult<IEnumerable<Material>>> Search(int groupId, [FromQuery] string? tag)
-        //{
-        //    // Bug Prevention: First, make sure the study group actually exists
-        //    var groupExists = await _groupRepo.GetByIdAsync(groupId);
-        //    if (groupExists == null)
-        //    {
-        //        return NotFound(new { message = "Cannot search materials. The specified study group does not exist." });
-        //    }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id, [FromQuery] int userId)
+        {
 
-        //    // Build base filtering criteria to only pull materials belonging to THIS group
-        //    Expression<Func<Material, bool>> criteria = m => m.StudyGroupId == groupId;
+            var all = await _materialService.GetMaterialsByTagAsync(0, null);
 
-        //    // If the student typed or clicked a specific tag, narrow down the query
-        //    if (!string.IsNullOrEmpty(tag))
-        //    {
-        //        criteria = m => m.StudyGroupId == groupId && m.Tag.Contains(tag);
-        //    }
+            Material materialToDelete = null;
+            foreach (var m in all.MaterialList)
+            {
+                if (m.Id == id)
+                    materialToDelete = m;
+            }
 
-        //    // Eagerly load the UploadedBy profile information so React can display who shared it
-        //    var results = await _materialRepo.GetAllAsyncInclude(criteria, m => m.UploadedBy!);
+            var result = await _materialService.DeleteMaterialAsync(materialToDelete, userId);
 
-        //    return Ok(results);
-        //}
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
 
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> Delete(int id)
-        //{
-        //    var material = await _repo.GetByIdAsync(id);
-        //    if (material == null) return NotFound();
-
-        //    // Remove physical file first
-        //    if (System.IO.File.Exists(material.FilePath))
-        //        System.IO.File.Delete(material.FilePath);
-
-        //    // Remove DB record
-        //    await _repo.DeleteAsync(id);
-        //    return NoContent();
-        //}
+            return NoContent();
+        }
     }
 }

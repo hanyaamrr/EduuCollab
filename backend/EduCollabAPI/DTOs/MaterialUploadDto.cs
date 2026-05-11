@@ -5,9 +5,17 @@ namespace EduCollabAPI.DTOs
     public class MaterialUploadDto
     {
         [Required]
-        public IFormFile File { get; set; } = null!;
+        public IFormFile File { get; set; }
+
+        [Required]
+        public string FileName { get; set; }
+
         [Required]
         public int StudyGroupId { get; set; }
-        public string Tag { get; set; } = string.Empty;
+
+        [Required]
+        public int UserId { get; set; }
+
+        public string Tag { get; set; }
     }
 }

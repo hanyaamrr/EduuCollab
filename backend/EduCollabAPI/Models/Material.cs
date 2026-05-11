@@ -7,22 +7,23 @@ namespace EduCollabAPI.Models
     {
         [Key]
         public int Id { get; set; }
-        [Required]
-        public string FileName { get; set; } = string.Empty;
-        [Required]
-        public string FilePath { get; set; } = string.Empty;
-        public string FileType { get; set; } = string.Empty;
-        public string Tag { get; set; } = string.Empty;
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
-
 
         [Required]
+        public string FileName { get; set; } 
+
+        [Required]
+        [FileExtensions(Extensions = "jpg,jpeg,png,pdf,docx,pptx")]
+        public string FilePath { get; set; } 
+
+        public string Tag { get; set; } 
+        public DateTime UploadedAt { get; set; } = DateTime.Now;
+
+
         [ForeignKey("StudyGroupId")]
         public int StudyGroupId { get; set; }
 
-        [Required]
         [ForeignKey("UploadedByUserId")]
-        public string UploadedByUserId { get; set; } = string.Empty; 
+        public int UploadedByUserId { get; set; }
 
     }
 
