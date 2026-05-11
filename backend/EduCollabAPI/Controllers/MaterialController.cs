@@ -1,90 +1,129 @@
-﻿// using EduCollabAPI.Data;
-// using EduCollabAPI.DTOs;
-// using EduCollabAPI.Models;
-// using Microsoft.AspNetCore.Mvc;
+﻿using EduCollabAPI.Data;
+using EduCollabAPI.DTOs;
+using EduCollabAPI.Models;
+using Microsoft.AspNetCore.Mvc;
 
-// namespace EduCollabAPI.Controllers
-// {
-//     [Route("api/[controller]")]
-//     [ApiController]
-//     public class MaterialController : ControllerBase
-//     {
-//         private readonly DataRepository<Material> _repo;
+namespace EduCollabAPI.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class MaterialController : ControllerBase
+    {
+        private readonly DataRepository<Material> _materialRepo;
+        private readonly DataRepository<StudyGroup> _groupRepo;
+        private readonly DataRepository<User> _userRepo;
 
-//         public MaterialController(DataRepository<Material> repo)
-//         {
-//             _repo = repo;
-//         }
+        public MaterialController(DataRepository<Material> materialRepo, DataRepository<StudyGroup> groupRepo, DataRepository<User> userRepo)
+        {
+            _materialRepo = materialRepo;
+            _groupRepo = groupRepo;
+            _userRepo = userRepo;
+        }
 
 
-//         [HttpPost("upload")]
-//         public async Task<ActionResult> Upload([FromForm] MaterialUploadDto dto)
-//         {
-//             if (dto.File == null || dto.File.Length == 0)
-//                 return BadRequest("Please provide a valid file.");
+        [HttpPost("upload")]
+        public async Task<ActionResult> UploadMaterial([FromForm] MaterialUploadDto dto)
+        {
+            if (dto.File == null || dto.File.Length == 0)
+                return BadRequest(new { message = "Please provide a valid file." });
 
-//             var material = new Material
-//             {
-//                 FileName = dto.File.FileName,
-//                 FileType = Path.GetExtension(dto.File.FileName),
-//                 Tag = dto.Tag,
-//                 UploadedAt = DateTime.UtcNow,
-//                 StudyGroupId = dto.StudyGroupId,
-//                 UploadedByUserId = "temp-user-id" // Replace with real ID later
-//             };
+            var targetGroup = await _groupRepo.GetByIdAsync(dto.StudyGroupId);
+            if (targetGroup == null)
+            {
+                return NotFound(new { message = "The specified destination study group does not exist." });
+            }
 
-//             int newId = await _repo.AddAsync(material);
+            //user validation after the authentication is done
 
-//             var uniqueFileName = $"{newId}_{dto.File.FileName}";
-//             var folder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+            var material = new Material
+            {
+                FileName = dto.File.FileName,
+                FileType = Path.GetExtension(dto.File.FileName),
+                Tag = dto.Tag,
+                UploadedAt = DateTime.Now,
+                StudyGroupId = dto.StudyGroupId,
+                //UploadedByUserId = 
+            };
 
-//             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            await _materialRepo.AddAsync(material);
+            int newId = material.Id;
 
-//             var fullPath = Path.Combine(folder, uniqueFileName);
+            var uniqueFileName = $"{newId}_{dto.File.FileName}";
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
 
-//             using (var stream = new FileStream(fullPath, FileMode.Create))
-//             {
-//                 await dto.File.CopyToAsync(stream);
-//             }
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
 
-//             material.FilePath = fullPath;
-//             await _repo.UpdateAsync(material);
+            var fullPath = Path.Combine(folder, uniqueFileName);
 
-//             return Ok(new { message = "Upload successful!", id = newId });
-//         }
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await dto.File.CopyToAsync(stream);
+            }
 
-//         //[HttpGet("search")]
-//         //public async Task<ActionResult> Search(int groupId, string tag)
-//         //{
-//         //    var results = await _repo.SearchByTagAsync(groupId, tag.ToLower());
-//         //    return Ok(results);
-//         //}
+            material.FilePath = fullPath;
+            await _materialRepo.UpdateAsync(material);
 
-//         //[HttpGet("download/{id}")]
-//         //public async Task<IActionResult> Download(int id)
-//         //{
-//         //    var material = await _repo.GetByIdAsync(id);
-//         //    if (material == null) return NotFound("Material not found.");
+            return Ok(new { message = "Upload successful!", id = newId , fileName=uniqueFileName });
+        }
 
-//         //    if (!System.IO.File.Exists(material.FilePath)) return NotFound("Physical file missing.");
+        [HttpGet("download/{id}")]
+        public async Task<ActionResult> DownloadMaterial(int id)
+        {
+            var material = await _materialRepo.GetByIdAsync(id);
+            if (material == null)
+            {
+                return NotFound(new { message = "file does not exist." });
+            }
 
-//         //    var bytes = await System.IO.File.ReadAllBytesAsync(material.FilePath);
-//         //    return File(bytes, "application/octet-stream", material.FileName);
-//         //}
+            if (!(System.IO.File.Exists(material.FilePath)))
+            {
+                return NotFound(new { message = "The physical file could not be found." });
+            }
 
-//         //[HttpDelete("{id}")]
-//         //public async Task<IActionResult> Delete(int id)
-//         //{
-//         //    var material = await _repo.GetByIdAsync(id);
-//         //    if (material == null) return NotFound();
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(material.FilePath);
 
-//         //    // Remove physical file first
-//         //    if (System.IO.File.Exists(material.FilePath))
-//         //        System.IO.File.Delete(material.FilePath);
+            return File(fileBytes, "application/octet-stream", material.FileName);
+        }
 
-//         //    // Remove DB record
-//         //    await _repo.DeleteAsync(id);
-//         //    return NoContent();
-//         //}
-//     }
-// }
+        //[HttpGet("search/{groupId}")]
+        //public async Task<ActionResult<IEnumerable<Material>>> Search(int groupId, [FromQuery] string? tag)
+        //{
+        //    // Bug Prevention: First, make sure the study group actually exists
+        //    var groupExists = await _groupRepo.GetByIdAsync(groupId);
+        //    if (groupExists == null)
+        //    {
+        //        return NotFound(new { message = "Cannot search materials. The specified study group does not exist." });
+        //    }
+
+        //    // Build base filtering criteria to only pull materials belonging to THIS group
+        //    Expression<Func<Material, bool>> criteria = m => m.StudyGroupId == groupId;
+
+        //    // If the student typed or clicked a specific tag, narrow down the query
+        //    if (!string.IsNullOrEmpty(tag))
+        //    {
+        //        criteria = m => m.StudyGroupId == groupId && m.Tag.Contains(tag);
+        //    }
+
+        //    // Eagerly load the UploadedBy profile information so React can display who shared it
+        //    var results = await _materialRepo.GetAllAsyncInclude(criteria, m => m.UploadedBy!);
+
+        //    return Ok(results);
+        //}
+
+        //[HttpDelete("{id}")]
+        //public async Task<IActionResult> Delete(int id)
+        //{
+        //    var material = await _repo.GetByIdAsync(id);
+        //    if (material == null) return NotFound();
+
+        //    // Remove physical file first
+        //    if (System.IO.File.Exists(material.FilePath))
+        //        System.IO.File.Delete(material.FilePath);
+
+        //    // Remove DB record
+        //    await _repo.DeleteAsync(id);
+        //    return NoContent();
+        //}
+    }
+}

@@ -1,6 +1,7 @@
 using EduCollabAPI.Data;
 using EduCollabAPI.DTOs;
 using EduCollabAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EduCollabAPI.Controllers;
@@ -8,6 +9,7 @@ namespace EduCollabAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class UserController(DataRepository<User> userRepo) : ControllerBase
 {
 
@@ -45,7 +47,8 @@ public class UserController(DataRepository<User> userRepo) : ControllerBase
     //
     //     return Ok(new { message = "User created successfully!" });
     // }
-
+    
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
