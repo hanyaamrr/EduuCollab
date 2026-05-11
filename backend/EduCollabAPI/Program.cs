@@ -2,7 +2,6 @@ using System.Text;
 using EduCollabAPI.Data;
 using EduCollabAPI.Models;
 
-using EduCollabAPI.Data;
 using EduCollabAPI.Hubs;
 using EduCollabAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,8 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(Options =>
 Options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
-
-builder.Services.AddSignalR();
 
 builder.Services.AddScoped<NotificationService>();
 
@@ -41,6 +38,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false  
         };
     });
+
+builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var app = builder.Build();
 
@@ -83,6 +92,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.UseCors("AllowReact");
 
 app.MapRazorPages();
 

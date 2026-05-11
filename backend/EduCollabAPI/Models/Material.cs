@@ -12,21 +12,17 @@ namespace EduCollabAPI.Models
         [Required]
         public string FilePath { get; set; } = string.Empty;
         public string FileType { get; set; } = string.Empty;
-
         public string Tag { get; set; } = string.Empty;
-
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
 
         [Required]
         [ForeignKey("StudyGroupId")]
         public int StudyGroupId { get; set; }
-        public StudyGroup? StudyGroup { get; set; }
 
         [Required]
         [ForeignKey("UploadedByUserId")]
         public string UploadedByUserId { get; set; } = string.Empty; 
-        public User? UploadedBy { get; set; }
 
     }
 
