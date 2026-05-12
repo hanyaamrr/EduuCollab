@@ -1,5 +1,7 @@
-﻿using EduCollabAPI.DTOs;
+﻿using EduCollabAPI.Data;
+using EduCollabAPI.DTOs;
 using EduCollabAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using EduCollabAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +9,7 @@ namespace EduCollabAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MaterialController : ControllerBase
     {
         private readonly MaterialService _materialService;
