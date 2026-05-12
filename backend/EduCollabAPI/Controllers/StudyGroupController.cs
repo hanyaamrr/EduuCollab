@@ -23,6 +23,13 @@ namespace EduCollabAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _service.GetAll();
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {

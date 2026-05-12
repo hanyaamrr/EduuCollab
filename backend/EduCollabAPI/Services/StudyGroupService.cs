@@ -27,6 +27,17 @@ namespace EduCollabAPI.Services
             return StudyGroupMapper.ToDto(group);
         }
 
+        public async Task<List<StudyGroupDTO>> GetAll()
+        {
+            var groups = await _groupRepo.GetAllAsync();
+
+            if (groups == null)
+            {
+                throw new Exception("Groups not found");
+            }
+
+            return groups.Select(StudyGroupMapper.ToDto).ToList();
+        }
         public async Task<StudyGroupDTO> GetById(int id)
         {
             var group = await _groupRepo.GetByIdAsync(id);
