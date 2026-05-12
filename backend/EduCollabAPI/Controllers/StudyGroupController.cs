@@ -1,11 +1,13 @@
 ﻿using EduCollabAPI.DTOs;
 using EduCollabAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EduCollabAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class StudyGroupController : ControllerBase
     {
         private readonly StudyGroupService _service;

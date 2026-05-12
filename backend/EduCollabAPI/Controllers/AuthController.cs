@@ -4,6 +4,7 @@ using System.Text;
 using EduCollabAPI.Data;
 using EduCollabAPI.DTOs;
 using EduCollabAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
@@ -13,6 +14,7 @@ namespace EduCollabAPI.Controllers;
 
 [Microsoft.AspNetCore.Components.Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class AuthController(IAuthRepository authRepo, IConfiguration config) : ControllerBase
 {
     [HttpPost("register")]

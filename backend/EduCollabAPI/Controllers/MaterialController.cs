@@ -1,12 +1,14 @@
 ﻿using EduCollabAPI.Data;
 using EduCollabAPI.DTOs;
 using EduCollabAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EduCollabAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MaterialController : ControllerBase
     {
         private readonly DataRepository<Material> _materialRepo;
