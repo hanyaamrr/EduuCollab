@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useNavigate, Link, Navigate } from 'react-router-dom'; // <-- Add Navigate here
+import { Navigate, Link } from 'react-router-dom'; // Notice we don't even need useNavigate anymore!
 import useAuth from '../../hooks/useAuth';
 import { ArrowLeft } from 'lucide-react';
 
@@ -11,53 +12,45 @@ const schema = yup.object().shape({
 });
 
 const Login = () => {
-  const { login, user } = useAuth(); // <-- Extract 'user' from useAuth here
-  const navigate = useNavigate();
+  const { login, user } = useAuth();
+  const [apiError, setApiError] = useState('');
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setError,
   } = useForm({
     resolver: yupResolver(schema),
   });
 
-  // --- SAFEGUARD: If they are already logged in, bounce them away from the login page! ---
-  // --- SAFEGUARD: If they are already logged in, bounce them away! ---
+  // --- THE MASTER ROUTER ---
+  // Any time the 'user' variable updates, this block intercepts the screen
+  // and teleports the user to the correct dashboard automatically.
   if (user) {
     if (user.role === 'Admin') return <Navigate to="/admin" replace />;
     if (user.role === 'GroupCreator') return <Navigate to="/creator" replace />;
-    if (user.role === 'Student') return <Navigate to="/student" replace />; // <--- ADD THIS LINE!
+    if (user.role === 'Student') return <Navigate to="/student" replace />;
+
+    // Fallback for any other scenario
     return <Navigate to="/" replace />;
   }
 
   const onSubmit = async (data) => {
+    setApiError(''); // Clear old errors
     try {
-      const userRole = await login(data);
-
-      // THE TRUTH TELLER: Let's see exactly what the backend thinks this user is!
-      console.log("THE ROLE FOR THIS USER IS:", userRole);
-
-      // Navigate based on the exact string
-      if (userRole === 'Admin') {
-        navigate('/admin', { replace: true });
-      } else if (userRole === 'GroupCreator') {
-        navigate('/creator', { replace: true });
-      } else if (userRole === 'Student') {
-        navigate('/student', { replace: true });
-      } else {
-        // If it doesn't match any of the above, it falls back here!
-        navigate('/', { replace: true });
-      }
+      // 1. Send the data to the backend
+      // 2. AuthContext saves the token and updates the 'user' state
+      // 3. This page re-renders, hits the Master Router above, and navigates flawlessly!
+      await login(data);
 
     } catch (err) {
-      setError('root', {
-        message: err.response?.data || 'Invalid username or password!',
-      });
+      // Handle the API error securely
+      const errorMsg = typeof err.response?.data === 'string'
+          ? err.response.data
+          : 'Invalid email or password. Please try again.';
+      setApiError(errorMsg);
     }
   };
-
 
   return (
       <div className="flex justify-center items-center min-h-[70vh]">
@@ -99,9 +92,10 @@ const Login = () => {
               {errors.password && <p className="text-red-500 text-sm mt-1 ml-1">{errors.password.message}</p>}
             </div>
 
-            {errors.root && (
-                <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm text-center">
-                  {errors.root.message}
+            {/* Dedicated API Error Box */}
+            {apiError && (
+                <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm text-center font-medium shadow-sm">
+                  {apiError}
                 </div>
             )}
 
