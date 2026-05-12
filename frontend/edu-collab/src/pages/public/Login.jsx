@@ -23,15 +23,11 @@ const Login = () => {
     resolver: yupResolver(schema),
   });
 
-  // --- THE MASTER ROUTER ---
-  // Any time the 'user' variable updates, this block intercepts the screen
-  // and teleports the user to the correct dashboard automatically.
   if (user) {
     if (user.role === 'Admin') return <Navigate to="/admin" replace />;
     if (user.role === 'GroupCreator') return <Navigate to="/creator" replace />;
     if (user.role === 'Student') return <Navigate to="/student" replace />;
 
-    // Fallback for any other scenario
     return <Navigate to="/" replace />;
   }
 
