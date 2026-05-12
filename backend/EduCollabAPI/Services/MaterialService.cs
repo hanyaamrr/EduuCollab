@@ -148,5 +148,12 @@ namespace EduCollabAPI.Services
             await _materialRepo.DeleteAsync(material);
             return new MaterialResult(); 
         }
+        
+        public async Task<MaterialResult> GetAllMaterialsAsync(int groupId)
+        {
+            var materials = await _materialRepo.GetAllAsync();
+            var result = materials.Where(m => m.StudyGroupId == groupId).ToList();
+            return new MaterialResult { MaterialList = result };
+        }
     }
 }

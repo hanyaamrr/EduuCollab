@@ -7,7 +7,6 @@ namespace EduCollabAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class StudyGroupController : ControllerBase
     {
         private readonly StudyGroupService _service;
@@ -17,6 +16,7 @@ namespace EduCollabAPI.Controllers
         }
 
         [HttpPost]
+        // [Authorize(Roles = "GroupCreator")]
         public async Task<IActionResult> Create([FromBody] StudyGroupCreateDTO dto)
         {
             var result = await _service.CreateGroup(dto);
@@ -45,14 +45,14 @@ namespace EduCollabAPI.Controllers
         }
 
         [HttpGet("subject")]
-        public async Task<IActionResult> GetBySybject(string subject)
+        public async Task<IActionResult> GetBySubject(string subject)
         {
             var result = await _service.GetBySubject(subject);
             return Ok(result);
         }
 
         [HttpGet("meeting-time")]
-        public async Task<IActionResult> GetByMeetingTimr(string meetingTime)
+        public async Task<IActionResult> GetByMeetingTime(string meetingTime)
         {
             var result = await _service.GetByMeetingTime(meetingTime);
             return Ok(result);
@@ -77,6 +77,20 @@ namespace EduCollabAPI.Controllers
         {
             await _service.HandleRequest(id, accept);
             return Ok("Request processed");
+        }
+        
+        [HttpGet("Requests/pending")]
+        public async Task<IActionResult> GetPending()
+        {
+            var result = await _service.GetPendingRequests();
+            return Ok(result);
+        }
+
+        [HttpGet("MyGroups")]
+        public async Task<IActionResult> GetMyGroups([FromQuery] int userId)
+        {
+            var result = await _service.GetMyGroups(userId);
+            return Ok(result);
         }
     }
 }

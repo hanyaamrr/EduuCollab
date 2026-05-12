@@ -10,6 +10,7 @@ namespace EduCollabAPI.Services
     {
         private readonly DataRepository<StudyGroup> _groupRepo;
         private readonly DataRepository<GroupMember> _requestRepo;
+        private readonly DataRepository<User> _userRepo;
 
 
         public StudyGroupService( DataRepository<StudyGroup> groupRepo, DataRepository<GroupMember> requestRepo)
@@ -17,6 +18,7 @@ namespace EduCollabAPI.Services
             _groupRepo = groupRepo;
             _requestRepo = requestRepo;
         }
+        
 
         public async Task<StudyGroupDTO> CreateGroup(StudyGroupCreateDTO dto)
         {
@@ -141,5 +143,51 @@ namespace EduCollabAPI.Services
             request.Status = "Accepted";
             await _requestRepo.UpdateAsync(request);
         }
+        public async Task<List<JoinResponseDTO>> GetPendingRequests()
+        {
+            var pending = await _requestRepo.GetAllAsyncInclude(
+                m => m.Status == "Pending",
+                m => m.User,
+                m => m.StudyGroup
+            );
+
+            return pending.Select(m => new JoinResponseDTO
+            {
+                Id = m.Id,
+                StudentName = m.User.Username,
+                GroupName = m.StudyGroup.Name
+            }).ToList();
+        }
+
+        public async Task<List<StudyGroupDTO>> GetMyGroups(int userId)
+        {
+            var allMembers = await _requestRepo.GetAllAsync();
+            var myGroupIds = allMembers
+                .Where(m => m.UserId == userId && m.Status == "Accepted")
+                .Select(m => m.GroupId)
+                .ToList();
+
+            var allGroups = await _groupRepo.GetAllAsync();
+
+            var myGroups = allGroups
+                .Where(g => myGroupIds.Contains(g.Id) || g.CreatorId == userId)
+                .ToList();
+
+            var allGroupMembers = await _requestRepo.GetAllAsync();
+
+            return myGroups.Select(g => new StudyGroupDTO
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Subject = g.Subject,
+                Description = g.Description,
+                Location = g.Location,
+                MeetingType = g.MeetingType,
+                MeetingSchedule = g.MeetingSchedule,
+                MaxMembers = g.MaxMembers,
+                CurrentMembers = allGroupMembers.Count(m => m.GroupId == g.Id && m.Status == "Accepted")
+            }).ToList();
+        }
+
     }
 }

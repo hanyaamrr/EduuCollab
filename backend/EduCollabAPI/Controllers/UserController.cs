@@ -12,6 +12,8 @@ namespace EduCollabAPI.Controllers;
 [Authorize]
 public class UserController(DataRepository<User> userRepo) : ControllerBase
 {
+    
+    
 
     [HttpGet]
     public async Task<IActionResult> GetAllUsers()

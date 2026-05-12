@@ -103,5 +103,19 @@ namespace EduCollabAPI.Controllers
 
             return NoContent();
         }
+        
+        [HttpGet("group/{groupId}")]
+        public async Task<IActionResult> GetAll(int groupId, [FromQuery] int userId)
+        {
+            bool isMember = await _membershipService.IsUserInGroup(userId, groupId);
+            if (!isMember)
+                return Forbid("You aren't an accepted member of this group.");
+
+            var result = await _materialService.GetAllMaterialsAsync(groupId);
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
+
+            return Ok(result.MaterialList);
+        }
     }
 }
