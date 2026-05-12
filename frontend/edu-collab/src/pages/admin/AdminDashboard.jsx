@@ -17,9 +17,7 @@ const AdminDashboard = () => {
         const res = await api.get('/User');
         setUsers(res.data);
       } else {
-        // Assume you create a generic get all groups endpoint in StudyGroupController
-        // const res = await api.get('/StudyGroup/all');
-        // setGroups(res.data);
+
       }
     } catch (err) { console.error("Failed to fetch data", err); }
   };
