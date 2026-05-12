@@ -11,22 +11,35 @@ namespace EduCollabAPI.Services
         private readonly DataRepository<StudyGroup> _groupRepo;
         private readonly DataRepository<GroupMember> _requestRepo;
         private readonly DataRepository<User> _userRepo;
+        private readonly DataRepository<GroupRequest> _groupRequestRepo;
 
 
-        public StudyGroupService( DataRepository<StudyGroup> groupRepo, DataRepository<GroupMember> requestRepo)
+        public StudyGroupService( DataRepository<StudyGroup> groupRepo, DataRepository<GroupMember> requestRepo, DataRepository<GroupRequest> groupRequestRepo)
         {
             _groupRepo = groupRepo;
             _requestRepo = requestRepo;
+            _groupRequestRepo = groupRequestRepo; 
         }
         
 
         public async Task<StudyGroupDTO> CreateGroup(StudyGroupCreateDTO dto)
         {
-            var group = StudyGroupMapper.ToEntity(dto);
+            // Instead of mapping to StudyGroup, map to GroupRequest
+            var request = new GroupRequest
+            {
+                Name = dto.Name,
+                Subject = dto.Subject,
+                Description = dto.Description,
+                MaxMembers = dto.MaxMembers,
+                MeetingType = dto.MeetingType,
+                MeetingSchedule = dto.MeetingSchedule,
+                Location = dto.Location,
+                CreatorId = dto.CreatorId,
+            };
 
-            await _groupRepo.AddAsync(group);
+            await _groupRequestRepo.AddAsync(request);
 
-            return StudyGroupMapper.ToDto(group);
+            return new StudyGroupDTO { Name = request.Name, Description = "PENDING APPROVAL" }; 
         }
 
         public async Task<List<StudyGroupDTO>> GetAll()

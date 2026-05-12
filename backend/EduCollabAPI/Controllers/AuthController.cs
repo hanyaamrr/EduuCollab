@@ -19,20 +19,33 @@ public class AuthController(IAuthRepository authRepo, IConfiguration config) : C
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegisterDto request)
     {
-        if (await authRepo.UserExists(request.Email))
+        if (await authRepo.UserExists(request.Email) || await authRepo.CreatorRequestExists(request.Email))
         {
-            return BadRequest("Email already exists");
+            return BadRequest("Email already exists or is pending approval.");
         }
 
-        var userToCreate = new User
+        if ((int)request.Role == 2) 
         {
-            Username = request.Username,
-            Email = request.Email.ToLower(),
-            Role = request.Role
-        };
-        
-        await authRepo.Register(userToCreate, request.Password);
-        return StatusCode(201);
+            var creatorRequest = new CreatorRequest
+            {
+                Username = request.Username,
+                Email = request.Email.ToLower()
+            };
+            
+            await authRepo.RegisterCreatorRequest(creatorRequest, request.Password);
+            return Ok(new { status = "Pending", message = "Account pending Admin approval." });
+        }
+        else 
+        {
+            var userToCreate = new User
+            {
+                Username = request.Username,
+                Email = request.Email.ToLower(),
+                Role = request.Role
+            };
+            await authRepo.Register(userToCreate, request.Password);
+            return Ok(new { status = "Active", message = "Account created successfully." });
+        }
     }
 
     [HttpPost("login")]

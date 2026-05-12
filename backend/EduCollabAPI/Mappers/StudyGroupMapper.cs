@@ -29,6 +29,10 @@ namespace EduCollabAPI.Mappers
                 Subject = group.Subject,
                 Description = group.Description,
                 Location = group.Location,
+        
+                MeetingType = group.MeetingType,
+                MeetingSchedule = group.MeetingSchedule,
+                MaxMembers = group.MaxMembers
             };
         }
     }

@@ -17,6 +17,8 @@ namespace EduCollabAPI.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<GroupMember> GroupMembers { get; set; }
         public DbSet<Discussion> GroupMessages { get; set; }  
+        public DbSet<CreatorRequest> CreatorRequests { get; set; }
+        public DbSet<GroupRequest> GroupRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

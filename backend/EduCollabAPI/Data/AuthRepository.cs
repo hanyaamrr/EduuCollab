@@ -9,6 +9,8 @@ public interface IAuthRepository
     Task<User?> Login(string email, string password);
     Task<User> Register(User user, string password);
     Task<bool> UserExists(string email);
+    Task<bool> CreatorRequestExists(string email);
+    Task<CreatorRequest> RegisterCreatorRequest(CreatorRequest request, string password);
 }
 
 public class AuthRepository(AppDbContext db) : IAuthRepository
@@ -34,6 +36,19 @@ public class AuthRepository(AppDbContext db) : IAuthRepository
     public async Task<bool> UserExists(string email)
     {
         return await db.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower());
+    }
+    
+    public async Task<bool> CreatorRequestExists(string email)
+    {
+        return await db.CreatorRequests.AnyAsync(x => x.Email.ToLower() == email.ToLower());
+    }
+
+    public async Task<CreatorRequest> RegisterCreatorRequest(CreatorRequest request, string password)
+    {
+        request.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        await db.CreatorRequests.AddAsync(request);
+        await db.SaveChangesAsync();
+        return request;
     }
     
 }
