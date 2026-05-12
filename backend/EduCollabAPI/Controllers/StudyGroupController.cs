@@ -16,13 +16,14 @@ namespace EduCollabAPI.Controllers
             _service = service;
         }
 
-        [HttpPost]
+        [HttpPost("CreateGroup")]
         public async Task<IActionResult> Create([FromBody] StudyGroupCreateDTO dto)
         {
             var result = await _service.CreateGroup(dto);
             return Ok(result);
         }
 
+<<<<<<< HEAD
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
@@ -31,20 +32,23 @@ namespace EduCollabAPI.Controllers
         }
 
         [HttpGet("{id}")]
+=======
+        [HttpGet("Group/{id}")]
+>>>>>>> master
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetById(id);
             return Ok(result);
         }
 
-        [HttpGet("location")]
+        [HttpGet("SearchByLocation")]
         public async Task<IActionResult> GetByLocation(string location)
         {
             var result = await _service.GetByLocation(location);
             return Ok(result);
         }
 
-        [HttpGet("subject")]
+        [HttpGet("SaerchBySubject")]
         public async Task<IActionResult> GetBySybject(string subject)
         {
             var result = await _service.GetBySubject(subject);
@@ -58,25 +62,39 @@ namespace EduCollabAPI.Controllers
             return Ok(result);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("DeleteGroup/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.Delete(id);
             return Ok(result);
         }
 
-        [HttpPost("join")]
+        [HttpPost("joinGroup/{id}")]
         public async Task<IActionResult> Join([FromBody] JoinRequestDTO dto) 
         {
             await _service.RequestJoin(dto);
             return Ok("Join request sent");
         }
 
-        [HttpPost("request/{id}")]
+        [HttpPost("Request/{id}")]
         public async Task<IActionResult> Handle(int id, [FromQuery] bool accept)
         {
             await _service.HandleRequest(id, accept);
             return Ok("Request processed");
+        }
+
+        [HttpGet("Requests/pending")]
+        public async Task<IActionResult> GetPending()
+        {
+            var result = await _service.GetPendingRequests();
+            return Ok(result);
+        }
+
+        [HttpGet("MyGroups")]
+        public async Task<IActionResult> GetMyGroups([FromQuery] int userId)
+        {
+            var result = await _service.GetMyGroups(userId);
+            return Ok(result);
         }
     }
 }

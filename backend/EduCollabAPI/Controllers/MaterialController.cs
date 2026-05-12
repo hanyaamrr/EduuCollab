@@ -72,6 +72,20 @@ namespace EduCollabAPI.Controllers
             return Ok(result.MaterialList);
         }
 
+        [HttpGet("group/{groupId}")]
+        public async Task<IActionResult> GetAll(int groupId, [FromQuery] int userId)
+        {
+            bool isMember = await _membershipService.IsUserInGroup(userId, groupId);
+            if (!isMember)
+                return Forbid("You aren't an accepted member of this group.");
+
+            var result = await _materialService.GetAllMaterialsAsync(groupId);
+            if (result.ErrorMessage != null)
+                return BadRequest(result.ErrorMessage);
+
+            return Ok(result.MaterialList);
+        }
+
         [HttpGet("download/{id}")]
         public async Task<IActionResult> Download(int id, [FromQuery] int userId)
         {
@@ -83,8 +97,8 @@ namespace EduCollabAPI.Controllers
             return File(result.Bytes, result.FileType, result.FileName);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id, [FromQuery] int userId)
+        [HttpDelete("DeleteMaterial/{id}")]
+        public async Task<IActionResult> DeleteMaterial(int id, [FromQuery] int userId)
         {
 
             var all = await _materialService.GetMaterialsByTagAsync(0, null);

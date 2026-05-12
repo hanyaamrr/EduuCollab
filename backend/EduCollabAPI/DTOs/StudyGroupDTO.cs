@@ -21,5 +21,10 @@ namespace EduCollabAPI.DTOs
         [Required]
         public string Location { get; set; }
 
+        public string MeetingType { get; set; }      
+        public string MeetingSchedule { get; set; }  
+        public int MaxMembers { get; set; }
+        public int CurrentMembers { get; set; }
+
     }
 }

@@ -106,6 +106,13 @@ namespace EduCollabAPI.Services
             return new MaterialResult { MaterialList = materials.ToList() };
         }
 
+        public async Task<MaterialResult> GetAllMaterialsAsync(int groupId)
+        {
+            var materials = await _materialRepo.GetAllAsync();
+            var result = materials.Where(m => m.StudyGroupId == groupId).ToList();
+            return new MaterialResult { MaterialList = result };
+        }
+
         public async Task<DownloadResult> DownloadMaterialAsync(int id)
         {
             var material = await _materialRepo.GetByIdAsync(id);
