@@ -14,7 +14,6 @@ namespace EduCollabAPI.Controllers;
 
 [Microsoft.AspNetCore.Components.Route("api/[controller]")]
 [ApiController]
-[Authorize]
 public class AuthController(IAuthRepository authRepo, IConfiguration config) : ControllerBase
 {
     [HttpPost("register")]
@@ -51,7 +50,14 @@ public class AuthController(IAuthRepository authRepo, IConfiguration config) : C
             new Claim(ClaimTypes.Role, user.Role.ToString()),
         };
         
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config.GetSection("AppSettings:Key").Value!));
+        var tokenValue = config.GetSection("AppSettings:Token").Value;
+
+        if (string.IsNullOrEmpty(tokenValue))
+        {
+            throw new InvalidOperationException("JWT Token Key is missing from appsettings.json!");
+        }
+
+        var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenValue));
         
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
