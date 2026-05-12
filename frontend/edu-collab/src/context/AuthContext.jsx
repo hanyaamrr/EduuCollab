@@ -14,12 +14,12 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        // Map .NET claims to a usable React user object
+        // USE THE SHORT NAMES FROM YOUR CONSOLE!
         setUser({
-          id: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-          email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
-          name: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'],
-          role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+          id: decoded.nameid,
+          email: decoded.email,
+          name: decoded.unique_name,
+          role: decoded.role,
         });
       } catch (error) {
         localStorage.removeItem('token');
@@ -32,14 +32,22 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/login', credentials);
     const { token } = response.data;
     localStorage.setItem('token', token);
-    
+
     const decoded = jwtDecode(token);
+
+    // Grab the role using the short name
+    const role = decoded.role;
+
+    // Set the user using the short names
     setUser({
-      id: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-      email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
-      name: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'],
-      role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+      id: decoded.nameid,
+      email: decoded.email,
+      name: decoded.unique_name,
+      role: role,
     });
+
+    // Return the role so Login.jsx can use it!
+    return role;
   };
 
   const logout = () => {
@@ -48,8 +56,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ user, login, logout, loading }}>
+        {!loading && children}
+      </AuthContext.Provider>
   );
 };
