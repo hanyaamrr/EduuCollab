@@ -7,5 +7,7 @@
         public DateTime MeetingTime { get; set; }
         public string MeetingType { get; set; }
         public string Location { get; set; }
+        
+        public bool ReminderSent { get; set; } = false;
     }
 }

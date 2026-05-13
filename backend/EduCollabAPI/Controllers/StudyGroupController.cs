@@ -92,5 +92,41 @@ namespace EduCollabAPI.Controllers
             var result = await _service.GetMyGroups(userId);
             return Ok(result);
         }
+        
+        [HttpGet("CreatedGroups")]
+        public async Task<IActionResult> GetCreatedGroups([FromQuery] int creatorId)
+        {
+            var result = await _service.GetCreatorGroups(creatorId);
+            return Ok(result);
+        }
+        
+        [HttpGet("CreatorRequests/pending")]
+        public async Task<IActionResult> GetCreatorPending([FromQuery] int creatorId)
+        {
+            var result = await _service.GetCreatorPendingRequests(creatorId);
+            return Ok(result);
+        }
+        [HttpGet("StudentRequests/{studentId}")]
+        public async Task<IActionResult> GetStudentRequests(int studentId) // Removed [FromQuery]
+        {
+            var result = await _service.GetStudentPendingRequests(studentId);
+            return Ok(result);
+        }
+        
+        // DELETE: api/StudyGroup/leave/{groupId}/student/{studentId}
+        [HttpDelete("leave/{groupId}/student/{studentId}")]
+        public async Task<IActionResult> LeaveGroup(int groupId, int studentId)
+        {
+            try
+            {
+                await _service.LeaveGroup(studentId, groupId);
+                return Ok(new { message = "Successfully left the group." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        
     }
 }
