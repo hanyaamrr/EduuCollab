@@ -28,6 +28,7 @@ import CreatorDashboard from "../pages/creator/CreatorDashboard";
 import  StudentDashboard  from "../pages/student/StudentDashboard";
 import { GuestGuard } from "../guards/GuestGuard";
 import { AuthGuard } from "../guards/AuthGuard";
+import GroupDetails from "../pages/student/GroupDetails";
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
         element: <AuthGuard allowedRoles={["Student"]} />,
         children: [
           { path: "student", element: <StudentDashboard /> },
+          { path: "group/:groupId", element: <GroupDetails /> },
         ],
       },
 

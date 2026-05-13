@@ -12,8 +12,7 @@ const CreatorDashboard = () => {
   const [myGroups, setMyGroups] = useState([]);
   const [allGroups, setAllGroups] = useState([]);
   const [requests, setRequests] = useState([]);
-
-  // --- NEW MEETING STATES ---
+  const [meetingSchedule, setMeetingSchedule] = useState('');
   const [schedulingGroup, setSchedulingGroup] = useState(null); // Which group's form is open
   const [viewingGroupMeetings, setViewingGroupMeetings] = useState(null); // Which group's meetings are shown
   const [groupMeetings, setGroupMeetings] = useState([]);
@@ -43,15 +42,29 @@ const CreatorDashboard = () => {
     fetchData();
   }, [activeTab, user]);
 
-  // --- EXISTING ACTIONS ---
   const handleCreateGroup = async (data) => {
     try {
-      const payload = { ...data, maxMembers: parseInt(data.maxMembers, 10), creatorId: parseInt(user.id, 10) };
+      const payload = {
+        ...data, // This will automatically include the new meetingType from the form!
+        maxMembers: parseInt(data.maxMembers, 10),
+        creatorId: parseInt(user.id, 10),
+        meetingSchedule: meetingSchedule
+        // (Removed the hardcoded meetingType from here)
+      };
+
       await api.post('/api/studygroup', payload);
       toast.success('Group request sent to Admin!');
+
       reset();
+      setMeetingSchedule('');
+
     } catch (err) {
-      toast.error("Failed to request group creation.");
+      console.error("BACKEND ERROR:", err.response?.data);
+      const errorMessage = err.response?.data?.errors
+          ? JSON.stringify(err.response.data.errors)
+          : (err.response?.data || "Failed to create group.");
+
+      toast.error(`Error: ${errorMessage}`);
     }
   };
 
@@ -251,6 +264,25 @@ const CreatorDashboard = () => {
                 </div>
                 <div><label className="block text-sm font-medium mb-1">Location / Focus</label><input {...register('location', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" /></div>
                 <div><label className="block text-sm font-medium mb-1">Description</label><textarea {...register('description', {required: true})} rows="3" className="w-full px-4 py-3 bg-slate-50 border rounded-xl"></textarea></div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Meeting Time / Schedule</label>
+                  <input
+                      type="text"
+                      placeholder="e.g. Fridays at 4:00 PM"
+                      value={meetingSchedule}
+                      onChange={(e) => setMeetingSchedule(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Meeting Type</label>
+                  <select {...register('meetingType', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl">
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline / In-Person</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </div>
                 <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">{isSubmitting ? 'Submitting...' : 'Submit Request'}</button>
               </form>
             </div>

@@ -104,10 +104,11 @@ const Login = () => {
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-slate-500">
+          {/* To this perfectly wired React Router Link: */}
+          <p className="text-center text-slate-500 mt-6">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 font-semibold hover:underline">
-              Sign up
+            <Link to="/register" className="text-blue-600 font-bold hover:underline transition-all">
+              Sign up here
             </Link>
           </p>
         </div>

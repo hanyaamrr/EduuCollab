@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Users, Clock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api'; // <-- Check this path matches your folder structure!
+import api from '../../services/api';
 
 const BrowseGroups = () => {
     const [search, setSearch] = useState('');
     const [groups, setGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const navigate = useNavigate();
 
     // Fetch all groups when the component loads
@@ -28,13 +27,16 @@ const BrowseGroups = () => {
         fetchGroups();
     }, []);
 
-    // Lightning-fast frontend search filtering
-    const filteredGroups = groups.filter((group) => {
-        const searchTerm = search.toLowerCase();
+    const filteredGroups = groups.filter(group => {
+        // Convert everything to lowercase so the search isn't case-sensitive
+        const query = search.toLowerCase();
+
         return (
-            (group.name && group.name.toLowerCase().includes(searchTerm)) ||
-            (group.subject && group.subject.toLowerCase().includes(searchTerm)) ||
-            (group.location && group.location.toLowerCase().includes(searchTerm))
+            (group.name && group.name.toLowerCase().includes(query)) ||
+            (group.subject && group.subject.toLowerCase().includes(query)) ||
+            (group.location && group.location.toLowerCase().includes(query)) ||
+            // NEW: Check the meeting schedule too!
+            (group.meetingSchedule && group.meetingSchedule.toLowerCase().includes(query))
         );
     });
 
@@ -46,17 +48,21 @@ const BrowseGroups = () => {
             </header>
 
             {/* Search Bar */}
-            <div className="relative mb-10 max-w-2xl">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <Search className="text-slate-400" size={20} />
+            <div className="flex flex-col md:flex-row gap-4 mb-10 max-w-4xl">
+
+                {/* Unified Search Bar */}
+                <div className="relative mb-10 max-w-2xl">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <Search className="text-slate-400" size={20} />
+                    </div>
+                    <input
+                        type="text"
+                        className="w-full pl-12 pr-6 py-4 bg-white/60 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-slate-700 transition-all"
+                        placeholder="Search by subject, name, location, or time (e.g. 4:00)..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                 </div>
-                <input
-                    type="text"
-                    className="w-full pl-12 pr-6 py-4 bg-white/60 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-slate-700 transition-all"
-                    placeholder="Search by subject, name, or location..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
             </div>
 
             {/* State 1: Loading */}
