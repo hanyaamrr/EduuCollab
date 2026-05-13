@@ -1,153 +1,275 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Plus, Users, LayoutDashboard, X } from 'lucide-react';
 import api from '../../services/api';
 import useAuth from '../../hooks/useAuth';
-
-// Matches StudyGroupCreateDTO
-const schema = yup.object().shape({
-  name: yup.string().required('Name is required').max(50),
-  subject: yup.string().required('Subject is required'),
-  description: yup.string().required('Description is required').max(500),
-  maxMembers: yup.number().required().min(2).max(100),
-  meetingType: yup.string().required().oneOf(['Online', 'Offline']),
-  meetingSchedule: yup.string().required('Schedule is required'),
-  location: yup.string().required('Location/Link is required'),
-});
+import { Users, CheckCircle, XCircle, Trash2, PlusCircle, LayoutList, ClipboardList, CalendarPlus, CalendarDays } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 
 const CreatorDashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [myGroups, setMyGroups] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('my-groups');
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: { maxMembers: 10, meetingType: 'Offline' }
-  });
+  const [myGroups, setMyGroups] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [requests, setRequests] = useState([]);
+
+  // --- NEW MEETING STATES ---
+  const [schedulingGroup, setSchedulingGroup] = useState(null); // Which group's form is open
+  const [viewingGroupMeetings, setViewingGroupMeetings] = useState(null); // Which group's meetings are shown
+  const [groupMeetings, setGroupMeetings] = useState([]);
+
+  const [meetingForm, setMeetingForm] = useState({ meetingTime: '', meetingType: 'Online', location: '' });
+
+  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
 
   useEffect(() => {
-    // Fetch groups created by this user
-    // api.get(`/StudyGroup/creator/${user?.id}`).then(res => setMyGroups(res.data));
-  }, [user]);
+    if (!user) return;
+    const fetchData = async () => {
+      try {
+        if (activeTab === 'my-groups') {
+          const res = await api.get(`/api/studygroup/CreatedGroups?creatorId=${user.id}`);
+          setMyGroups(res.data);
+        } else if (activeTab === 'requests') {
+          const res = await api.get(`/api/studygroup/CreatorRequests/pending?creatorId=${user.id}`);
+          setRequests(res.data);
+        } else if (activeTab === 'all-groups') {
+          const res = await api.get('/api/studygroup/all');
+          setAllGroups(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data", err);
+      }
+    };
+    fetchData();
+  }, [activeTab, user]);
 
-  const onSubmit = async (data) => {
+  // --- EXISTING ACTIONS ---
+  const handleCreateGroup = async (data) => {
     try {
-      // Append CreatorId from token claims
-      const payload = { ...data, creatorId: user.id };
-      await api.post('/StudyGroup', payload);
-      setIsModalOpen(false);
+      const payload = { ...data, maxMembers: parseInt(data.maxMembers, 10), creatorId: parseInt(user.id, 10) };
+      await api.post('/api/studygroup', payload);
+      toast.success('Group request sent to Admin!');
       reset();
-      // Re-fetch groups here
-      alert("Group created successfully!");
     } catch (err) {
-      console.error(err);
-      alert("Failed to create group.");
+      toast.error("Failed to request group creation.");
+    }
+  };
+
+  const handleDeleteGroup = async (id) => {
+    if(!window.confirm('Are you sure you want to delete this group?')) return;
+    try {
+      await api.delete(`/api/studygroup/${id}`);
+      setMyGroups(myGroups.filter(g => g.id !== id));
+      toast.success("Group deleted.");
+    } catch (err) {
+      toast.error("Failed to delete group.");
+    }
+  };
+
+  const handleJoinRequest = async (id, accept) => {
+    try {
+      await api.post(`/api/studygroup/request/${id}?accept=${accept}`);
+      setRequests(requests.filter(req => req.id !== id));
+      toast.success(accept ? "Student accepted!" : "Student rejected.");
+    } catch (err) {
+      toast.error("Failed to process request.");
+    }
+  };
+
+  // --- NEW MEETING ACTIONS ---
+  const handleScheduleMeeting = async (e, groupId) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        groupId: groupId,
+        meetingTime: meetingForm.meetingTime,
+        meetingType: meetingForm.meetingType,
+        location: meetingForm.location
+      };
+      await api.post('/api/meeting', payload);
+      toast.success('Meeting scheduled successfully!');
+
+      setSchedulingGroup(null); // Close form
+      setMeetingForm({ meetingTime: '', meetingType: 'Online', location: '' }); // Reset form
+
+      // If they are currently viewing meetings for this group, refresh the list
+      if (viewingGroupMeetings === groupId) {
+        fetchMeetings(groupId);
+      }
+    } catch (err) {
+      toast.error(err.response?.data || "Failed to schedule meeting.");
+    }
+  };
+
+  const fetchMeetings = async (groupId) => {
+    try {
+      const res = await api.get(`/api/meeting/group/${groupId}`);
+      setGroupMeetings(res.data);
+      setViewingGroupMeetings(groupId);
+    } catch (err) {
+      toast.error("Failed to load meetings.");
     }
   };
 
   return (
-    <div className="animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+      <div className="max-w-6xl mx-auto space-y-8 px-6 pt-8 md:px-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Creator Hub</h1>
-          <p className="text-slate-500 mt-2 text-lg">Manage your study groups and pending requests.</p>
+          <h1 className="text-3xl font-bold text-slate-800">Creator Dashboard</h1>
+          <p className="text-slate-500 mt-1">Manage your study groups, schedule meetings, and handle requests.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 transition-all"
-        >
-          <Plus size={20} /> Create New Group
-        </button>
-      </div>
 
-      {/* Grid of My Groups */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {myGroups.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500 bg-white/50 backdrop-blur-sm rounded-[2rem] border border-white border-dashed">
-            <LayoutDashboard size={48} className="mx-auto mb-4 opacity-30" />
-            <p>You haven't created any groups yet.</p>
-          </div>
-        ) : (
-          myGroups.map(group => (
-            <div 
-              key={group.id} onClick={() => navigate(`/group/${group.id}`)}
-              className="cursor-pointer bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-sm border border-white/50 hover:-translate-y-1 transition-all group"
-            >
-              <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600">{group.name}</h3>
-              <p className="text-sm text-slate-500 mb-4 line-clamp-2">{group.description}</p>
-              <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                <span className="flex items-center gap-1 text-sm text-slate-500"><Users size={16} /> {group.maxMembers} Max</span>
-                <span className="text-blue-600 font-semibold text-sm">Manage &rarr;</span>
+        {/* --- TABS --- */}
+        <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
+          {[
+            { id: 'my-groups', icon: Users, label: 'My Groups' },
+            { id: 'requests', icon: ClipboardList, label: 'Pending Requests' },
+            { id: 'create', icon: PlusCircle, label: 'Create New Group' },
+            { id: 'all-groups', icon: LayoutList, label: 'Browse All Groups' }
+          ].map((tab) => (
+              <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all ${
+                      activeTab === tab.id
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+              >
+                <tab.icon size={18} />
+                {tab.label}
+              </button>
+          ))}
+        </div>
+
+        {/* --- TAB CONTENT: MY GROUPS --- */}
+        {activeTab === 'my-groups' && (
+            <div className="grid md:grid-cols-2 gap-6">
+              {myGroups.length === 0 ? <p className="text-slate-500">You haven't created any groups yet.</p> : null}
+              {myGroups.map(group => (
+                  <div key={group.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-800">{group.name}</h3>
+                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full mt-2">
+                    {group.subject}
+                  </span>
+                      </div>
+                      <button onClick={() => handleDeleteGroup(group.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 mb-4 border-b border-slate-100 pb-4">
+                      <button onClick={() => setSchedulingGroup(schedulingGroup === group.id ? null : group.id)} className="flex items-center gap-1 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors">
+                        <CalendarPlus size={16} /> {schedulingGroup === group.id ? 'Cancel' : 'Schedule Meeting'}
+                      </button>
+                      <button onClick={() => viewingGroupMeetings === group.id ? setViewingGroupMeetings(null) : fetchMeetings(group.id)} className="flex items-center gap-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg transition-colors">
+                        <CalendarDays size={16} /> {viewingGroupMeetings === group.id ? 'Hide Meetings' : 'View Meetings'}
+                      </button>
+                    </div>
+
+                    {/* SCHEDULE MEETING FORM INLINE */}
+                    {schedulingGroup === group.id && (
+                        <form onSubmit={(e) => handleScheduleMeeting(e, group.id)} className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 space-y-3">
+                          <h4 className="font-bold text-slate-700 text-sm">Schedule New Meeting</h4>
+                          <input type="datetime-local" required className="w-full px-3 py-2 border rounded-lg text-sm"
+                                 value={meetingForm.meetingTime} onChange={e => setMeetingForm({...meetingForm, meetingTime: e.target.value})} />
+
+                          <select className="w-full px-3 py-2 border rounded-lg text-sm" value={meetingForm.meetingType} onChange={e => setMeetingForm({...meetingForm, meetingType: e.target.value})}>
+                            <option value="Online">Online</option>
+                            <option value="Offline">Offline / In-Person</option>
+                            <option value="Hybrid">Hybrid</option>
+                          </select>
+
+                          <input type="text" placeholder="Location or Zoom Link" required className="w-full px-3 py-2 border rounded-lg text-sm"
+                                 value={meetingForm.location} onChange={e => setMeetingForm({...meetingForm, location: e.target.value})} />
+
+                          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Schedule It</button>
+                        </form>
+                    )}
+
+                    {/* VIEW MEETINGS INLINE */}
+                    {viewingGroupMeetings === group.id && (
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4 space-y-2">
+                          <h4 className="font-bold text-blue-800 text-sm">Upcoming Meetings</h4>
+                          {groupMeetings.length === 0 ? <p className="text-xs text-blue-600">No meetings scheduled.</p> : null}
+                          {groupMeetings.map(m => (
+                              <div key={m.id} className="bg-white p-3 rounded border border-blue-200 text-sm">
+                                <p className="font-bold text-slate-800">{new Date(m.meetingTime).toLocaleString()}</p>
+                                <p className="text-slate-600 text-xs mt-1"><span className="font-semibold">{m.meetingType}:</span> {m.location}</p>
+                              </div>
+                          ))}
+                        </div>
+                    )}
+
+                    {/* Enrolled Students Display */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <h4 className="font-semibold text-slate-700 text-sm mb-2">Enrolled Students ({group.currentMembers}/{group.maxMembers})</h4>
+                      {group.enrolledStudents?.length > 0 ? (
+                          <ul className="flex flex-wrap gap-2">
+                            {group.enrolledStudents.map((student, idx) => (
+                                <li key={idx} className="text-xs bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-600 shadow-sm">@{student}</li>
+                            ))}
+                          </ul>
+                      ) : ( <p className="text-xs text-slate-400 italic">No students enrolled yet.</p> )}
+                    </div>
+                  </div>
+              ))}
+            </div>
+        )}
+
+        {/* --- TAB CONTENT: PENDING REQUESTS --- */}
+        {activeTab === 'requests' && (
+            <div className="max-w-3xl">
+              {requests.length === 0 ? <p className="text-slate-500">No pending student requests.</p> : null}
+              <div className="space-y-4">
+                {requests.map(req => (
+                    <div key={req.id} className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                      <div>
+                        <p className="text-sm text-slate-500">Student <span className="font-bold text-slate-800">@{req.studentName}</span> wants to join</p>
+                        <p className="font-bold text-blue-600">{req.groupName}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleJoinRequest(req.id, true)} className="flex items-center gap-1 px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 text-sm font-medium"><CheckCircle size={18} /> Accept</button>
+                        <button onClick={() => handleJoinRequest(req.id, false)} className="flex items-center gap-1 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium"><XCircle size={18} /> Reject</button>
+                      </div>
+                    </div>
+                ))}
               </div>
             </div>
-          ))
+        )}
+
+        {/* --- TAB CONTENT: CREATE GROUP --- */}
+        {activeTab === 'create' && (
+            <div className="max-w-2xl bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">Request New Group</h2>
+              <form onSubmit={handleSubmit(handleCreateGroup)} className="space-y-5">
+                <div className="grid md:grid-cols-2 gap-5">
+                  <div><label className="block text-sm font-medium mb-1">Group Name</label><input {...register('name', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" /></div>
+                  <div><label className="block text-sm font-medium mb-1">Subject</label><input {...register('subject', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" /></div>
+                  <div><label className="block text-sm font-medium mb-1">Max Members</label><input type="number" {...register('maxMembers', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" /></div>
+                </div>
+                <div><label className="block text-sm font-medium mb-1">Location / Focus</label><input {...register('location', {required: true})} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" /></div>
+                <div><label className="block text-sm font-medium mb-1">Description</label><textarea {...register('description', {required: true})} rows="3" className="w-full px-4 py-3 bg-slate-50 border rounded-xl"></textarea></div>
+                <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">{isSubmitting ? 'Submitting...' : 'Submit Request'}</button>
+              </form>
+            </div>
+        )}
+
+        {/* --- TAB CONTENT: ALL GROUPS --- */}
+        {activeTab === 'all-groups' && (
+            <div className="grid md:grid-cols-3 gap-6">
+              {allGroups.map(group => (
+                  <div key={group.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 className="font-bold text-slate-800">{group.name}</h3>
+                    <p className="text-sm text-blue-600 mb-2">{group.subject}</p>
+                    <p className="text-slate-500 text-sm line-clamp-3 mb-3">{group.description}</p>
+                    <div className="text-xs text-slate-400 font-medium">Capacity: {group.currentMembers} / {group.maxMembers}</div>
+                  </div>
+              ))}
+            </div>
         )}
       </div>
-
-      {/* Create Group Modal (Glassmorphism Overlay) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white/95 backdrop-blur-xl w-full max-w-2xl rounded-[2rem] shadow-2xl border border-white p-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Create Study Group</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"><X size={20} /></button>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Group Name</label>
-                  <input {...register('name')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-                  <p className="text-red-500 text-xs mt-1 ml-1">{errors.name?.message}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Subject</label>
-                  <input {...register('subject')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-                  <p className="text-red-500 text-xs mt-1 ml-1">{errors.subject?.message}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Description</label>
-                <textarea {...register('description')} rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-                <p className="text-red-500 text-xs mt-1 ml-1">{errors.description?.message}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Type</label>
-                  <select {...register('meetingType')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50">
-                    <option value="Offline">Offline</option>
-                    <option value="Online">Online</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Max Members</label>
-                  <input type="number" {...register('maxMembers')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Schedule</label>
-                  <input {...register('meetingSchedule')} placeholder="e.g. Mon/Wed 4PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1 ml-1">Location / Meeting Link</label>
-                <input {...register('location')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50" />
-              </div>
-
-              <button type="submit" disabled={isSubmitting} className="w-full mt-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg transition-all disabled:opacity-70">
-                {isSubmitting ? 'Creating...' : 'Launch Study Group'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 

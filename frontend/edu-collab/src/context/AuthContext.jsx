@@ -14,7 +14,6 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        // USE THE SHORT NAMES FROM YOUR CONSOLE!
         setUser({
           id: decoded.nameid,
           email: decoded.email,

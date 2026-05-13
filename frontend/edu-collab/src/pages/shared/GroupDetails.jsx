@@ -8,7 +8,7 @@ const GroupDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('discussion');
-  
+
   // State for tabs
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
@@ -24,7 +24,7 @@ const GroupDetails = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!messageInput.trim()) return;
-    
+
     try {
       const res = await api.post('/Discussion', { content: messageInput, studyGroupId: id });
       setMessages([...messages, res.data]);
@@ -78,7 +78,7 @@ const GroupDetails = () => {
 
       {/* Active Tab Content Area */}
       <div className="bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-sm min-h-[50vh]">
-        
+
         {/* DISCUSSION TAB */}
         {activeTab === 'discussion' && (
           <div className="flex flex-col h-[50vh]">

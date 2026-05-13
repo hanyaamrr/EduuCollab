@@ -40,7 +40,7 @@ const AdminDashboard = () => {
   };
 
   return (
-      <div className="space-y-12">
+      <div className="space-y-12 px-6 pt-8 md:px-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Admin Dashboard</h1>
           <p className="text-slate-500">Manage pending approvals for Creators and Groups.</p>

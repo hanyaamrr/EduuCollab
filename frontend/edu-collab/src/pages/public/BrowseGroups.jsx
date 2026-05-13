@@ -39,7 +39,7 @@ const BrowseGroups = () => {
     });
 
     return (
-        <div className="animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-500 max-w-5xl mx-auto px-6 pt-8 md:px-8">
             <header className="mb-10">
                 <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Discover Groups</h1>
                 <p className="text-slate-500 mt-2 text-lg">Find the perfect study partners for your next exam.</p>
