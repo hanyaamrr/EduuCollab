@@ -86,10 +86,9 @@ namespace EduCollabAPI.Services
 
         public async Task<MaterialResult> GetMaterialsByTagAsync(int groupId, string tag)
         {
-
             var materials = await _materialRepo.GetAllAsyncInclude(
-                m => m.StudyGroupId == groupId && (tag!=null || m.Tag.Contains(tag)),
-                m => m.UploadedByUserId
+                m => m.StudyGroupId == groupId && 
+                     (string.IsNullOrEmpty(tag) || (m.Tag != null && m.Tag.Contains(tag)))
             );
 
             return new MaterialResult { MaterialList = materials.ToList() };
@@ -97,10 +96,9 @@ namespace EduCollabAPI.Services
 
         public async Task<MaterialResult> GetMaterialsByNameAsync(int groupId, string fileName)
         {
-
             var materials = await _materialRepo.GetAllAsyncInclude(
-                m => m.StudyGroupId == groupId && (fileName != null || m.FileName.Contains(fileName)),
-                m => m.UploadedByUserId
+                m => m.StudyGroupId == groupId && 
+                     (string.IsNullOrEmpty(fileName) || (m.FileName != null && m.FileName.Contains(fileName)))
             );
 
             return new MaterialResult { MaterialList = materials.ToList() };

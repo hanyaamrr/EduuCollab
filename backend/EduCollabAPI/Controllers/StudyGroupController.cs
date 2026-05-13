@@ -52,10 +52,17 @@ namespace EduCollabAPI.Controllers
         }
 
         [HttpGet("meeting-time")]
-        public async Task<IActionResult> GetByMeetingTime(string meetingTime)
+        public async Task<IActionResult> GetByMeetingTime([FromQuery] string meetingTime)
         {
-            var result = await _service.GetByMeetingTime(meetingTime);
-            return Ok(result);
+            try
+            {
+                var result = await _service.GetByMeetingTime(meetingTime);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]

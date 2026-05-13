@@ -16,6 +16,9 @@ builder.Services.AddDbContext<AppDbContext>(Options =>
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHostedService<MeetingReminderService>();
 
+builder.Services.AddScoped<MaterialService>();
+builder.Services.AddScoped<GroupMemberService>();
+
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 
@@ -65,7 +68,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5174")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Crucial for SignalR!
